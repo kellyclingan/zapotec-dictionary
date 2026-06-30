@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      /* CSS Style to style the page */
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px 20px;
+      }
+
+      /* Search container to position clear button */
+      .search-container {
+        position: relative;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      input#search {
+        padding: 8px 30px 8px 8px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Clear button style */
+      .clear-btn {
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #666;
+        line-height: 1;
+      }
+
+      .word-entry {
+        margin-bottom: 20px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 10px;
+      }
+
+      /* Remove border from last word entry to avoid double lines */
+      .word-entry:last-child {
+        border-bottom: none;
+        margin-bottom: 20px; /* space before hr */
+      }
+
+      .subtitle {
+        font-style: italic;
+        color: #666;
+        margin-top: -10px;
+        margin-bottom: 20px;
+      }
+
+      .footer-image {
+        display: block;
+        margin: 30px auto 0 auto;
+        max-width: 300px;
+        height: auto;
+        border-radius: 8px;
+      }
+
+      /* Style for horizontal separator before footer */
+      hr.separator {
+        border: none;
+        border-top: 1px solid #ccc;
+        margin: 20px auto;
+        max-width: 300px; /* matches footer width */
+      }
+
+      audio {
+        max-width: 100%;
+      }
+
+      mark {
+        background-color: yellow;
+        color: black;
+        font-weight: bold;
+      }
+
+      #results-count {
+        font-style: italic;
+        color: #444;
+        margin-bottom: 10px;
+      }
+
+      /* Style for no results message */
+      #no-results-message {
+        font-style: italic;
+        color: #999;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Main title -->
+    <h2>Team Technology - Zapotec Dictionary</h2>
+
+    <!-- Subtitle -->
+    <p class="subtitle"style="font-style: normal;">Est. May 2025
+
+      <br>
+      <br>
+       Bridging CU Boulder engineering and Teotitlán del Valle tradition through collaborative language revitalization. 
+      <br>
+
+      <p><strong>Created by Kelly Clingan, Millie Marsh, Selena, and Luis Fernando</strong></p>
+ 
+    </p>
+
+    <!-- Search box with clear button -->
+    <div class="search-container">
+      <input type="text" id="search" placeholder="Search Zapotec or English..." onkeyup="filter()" aria-label="Search dictionary">
+      <button class="clear-btn" onclick="clearSearch()" aria-label="Clear search input">×</button>
+    </div>
+
+    <!-- Result count -->
+    <p id="results-count"></p>
+
+    <!-- Container for dictionary results -->
+    <div id="results" tabindex="0"></div>
+
+    <!-- JavaScript to load and display dictionary data -->
+    <script>
+      let allData = [];
+
+      function clearSearch() {
+        document.getElementById("search").value = "";
+        filter();
+        document.getElementById("search").focus();
+      }
+
+      function highlightMatch(text, query) {
+        if (!query) return text;
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+      }
+
+      function filter() {
+        const query = document.getElementById("search").value.toLowerCase();
+        const filtered = allData.slice(1).filter(row => {
+          const zapotec = row[0] ? row[0].toString().toLowerCase() : "";
+          const english = row[1] ? row[1].toString().toLowerCase() : "";
+          return zapotec.includes(query) || english.includes(query);
+        });
+        showResults(filtered);
+      }
+
+      function showResults(data) {
+  const container = document.getElementById("results");
+  container.innerHTML = "";
+  const query = document.getElementById("search").value.toLowerCase();
+
+  // Filter out completely empty rows
+  const visibleData = data.filter(row => row[0] || row[1]);
+
+  // Show count of visible (non-empty) results
+  document.getElementById("results-count").textContent =
+    `${visibleData.length} result${visibleData.length !== 1 ? 's' : ''} found`;
+
+  if (visibleData.length === 0) {
+    container.innerHTML = `<p id="no-results-message">No results found.</p>`;
+    return;
+  }
+
+  // Render visible entries only
+  visibleData.forEach(row => {
+    container.innerHTML += `
+      <div class="word-entry">
+        <strong>Zapotec:</strong> ${highlightMatch(row[0] || '', query)}<br>
+        <strong>English:</strong> <em>${highlightMatch(row[1] || '', query)}</em><br>
+        <strong>Part of Speech:</strong> ${row[2] || ''}<br>
+        <strong>Pronunciation:</strong> ${row[3] || ''}<br>
+        ${row[4] ? `<strong>Notes:</strong>${row[4]}<br>` : ""}
+        ${row[5] ? `<strong>Audio:</strong><br><audio controls src="${row[5]}"></audio>` : ""}
+      </div>`;
+  });
+}
+
+
+
+      // Load data from server
+      google.script.run.withSuccessHandler(function(data) {
+        allData = data;
+        showResults(data.slice(1)); // show all entries except header on load
+      }).getDictionaryData();
+
+      // Focus search box on page load
+      window.onload = () => {
+        document.getElementById("search").focus();
+      };
+
+      // Press Enter to scroll to first result
+      document.getElementById("search").addEventListener('keydown', function(event) {
+        if(event.key === 'Enter') {
+          const firstEntry = document.querySelector('.word-entry');
+          if (firstEntry) firstEntry.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    </script>
+
+    <!-- Single horizontal line separating last entry and footer -->
+    <hr class="separator">
+
+    <!-- Optional footer image (logo or visual enhancement) -->
+    <img class="footer-image" src="https://www.dropbox.com/scl/fi/m0zbjqlil56bydpxlzkwz/TTPic.jpeg?rlkey=2ol5a3nzt9ghbz90181wxei8s&raw=1" alt="Team Technology Logo">
+
+  </body>
+</html>
